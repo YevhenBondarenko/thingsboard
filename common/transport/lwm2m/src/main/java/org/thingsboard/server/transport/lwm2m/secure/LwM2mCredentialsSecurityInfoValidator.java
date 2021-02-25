@@ -21,15 +21,15 @@ import org.eclipse.leshan.core.util.Hex;
 import org.eclipse.leshan.core.util.SecurityUtil;
 import org.eclipse.leshan.server.security.SecurityInfo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 import org.thingsboard.server.common.data.DeviceProfile;
 import org.thingsboard.server.common.transport.TransportServiceCallback;
-import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceLwM2MCredentialsRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceCredentialsResponseMsg;
+import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceLwM2MCredentialsRequestMsg;
+import org.thingsboard.server.queue.util.TbLwM2mTransportComponent;
 import org.thingsboard.server.transport.lwm2m.bootstrap.LwM2MTransportContextBootstrap;
-import org.thingsboard.server.transport.lwm2m.server.LwM2MTransportContextServer;
-import org.thingsboard.server.transport.lwm2m.server.LwM2MTransportHandler;
+import org.thingsboard.server.transport.lwm2m.server.LwM2mTransportContextServer;
+import org.thingsboard.server.transport.lwm2m.server.LwM2mTransportHandler;
 import org.thingsboard.server.transport.lwm2m.utils.TypeServer;
 
 import java.io.IOException;
@@ -46,11 +46,11 @@ import static org.thingsboard.server.transport.lwm2m.secure.LwM2MSecurityMode.X5
 
 @Slf4j
 @Component("LwM2MGetSecurityInfo")
-@ConditionalOnExpression("('${service.type:null}'=='tb-transport' && '${transport.lwm2m.enabled:false}'=='true' ) || ('${service.type:null}'=='monolith' && '${transport.lwm2m.enabled}'=='true')")
+@TbLwM2mTransportComponent
 public class LwM2mCredentialsSecurityInfoValidator {
 
     @Autowired
-    public LwM2MTransportContextServer contextS;
+    public LwM2mTransportContextServer contextS;
 
     @Autowired
     public LwM2MTransportContextBootstrap contextBS;
@@ -72,7 +72,7 @@ public class LwM2mCredentialsSecurityInfoValidator {
                         String credentialsBody = msg.getCredentialsBody();
                         resultSecurityStore[0] = createSecurityInfo(endPoint, credentialsBody, keyValue);
                         resultSecurityStore[0].setMsg(msg);
-                        Optional<DeviceProfile> deviceProfileOpt = LwM2MTransportHandler.decode(msg.getProfileBody().toByteArray());
+                        Optional<DeviceProfile> deviceProfileOpt = LwM2mTransportHandler.decode(msg.getProfileBody().toByteArray());
                         deviceProfileOpt.ifPresent(profile -> resultSecurityStore[0].setDeviceProfile(profile));
                         latch.countDown();
                     }
@@ -101,7 +101,7 @@ public class LwM2mCredentialsSecurityInfoValidator {
      */
     private ReadResultSecurityStore createSecurityInfo(String endPoint, String jsonStr, TypeServer keyValue) {
         ReadResultSecurityStore result = new ReadResultSecurityStore();
-        JsonObject objectMsg = LwM2MTransportHandler.validateJson(jsonStr);
+        JsonObject objectMsg = LwM2mTransportHandler.validateJson(jsonStr);
         if (objectMsg != null && !objectMsg.isJsonNull()) {
             JsonObject object = (objectMsg.has(keyValue.type) && !objectMsg.get(keyValue.type).isJsonNull()) ? objectMsg.get(keyValue.type).getAsJsonObject() : null;
             /**

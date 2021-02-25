@@ -47,11 +47,11 @@ public class LwM2MTransportContextBootstrap extends TransportContext {
 
     private LwM2MTransportConfigBootstrap ctxBootStrap;
     @Autowired
-    LwM2MTransportConfigBootstrap lwM2MTransportConfigBootstarp;
+    LwM2MTransportConfigBootstrap lwM2MTransportConfigBootstrap;
 
     @PostConstruct
     public void init() {
-        this.ctxBootStrap = lwM2MTransportConfigBootstarp;
+        this.ctxBootStrap = lwM2MTransportConfigBootstrap;
     }
 
     public LwM2MTransportConfigBootstrap getCtxBootStrap() {
