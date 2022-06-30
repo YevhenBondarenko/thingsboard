@@ -77,6 +77,9 @@ import org.thingsboard.server.queue.discovery.PartitionService;
 import org.thingsboard.server.queue.discovery.TbServiceInfoProvider;
 import org.thingsboard.server.queue.usagestats.TbApiUsageClient;
 import org.thingsboard.server.queue.util.DataDecodingEncodingService;
+import org.thingsboard.server.service.TbAssetService;
+import org.thingsboard.server.service.TbCustomerService;
+import org.thingsboard.server.service.TbDeviceService;
 import org.thingsboard.server.service.apiusage.TbApiUsageStateService;
 import org.thingsboard.server.service.component.ComponentDiscoveryService;
 import org.thingsboard.server.service.edge.rpc.EdgeRpcService;
@@ -152,6 +155,10 @@ public class ActorSystemContext {
 
     @Autowired
     @Getter
+    private TbDeviceService tbDeviceService;
+
+    @Autowired
+    @Getter
     private TbTenantProfileCache tenantProfileCache;
 
     @Autowired
@@ -161,6 +168,10 @@ public class ActorSystemContext {
     @Autowired
     @Getter
     private AssetService assetService;
+
+    @Autowired
+    @Getter
+    private TbAssetService tbAssetService;
 
     @Autowired
     @Getter
@@ -177,6 +188,10 @@ public class ActorSystemContext {
     @Autowired
     @Getter
     private CustomerService customerService;
+
+    @Autowired
+    @Getter
+    private TbCustomerService tbCustomerService;
 
     @Autowired
     @Getter

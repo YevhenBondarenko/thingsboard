@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.thingsboard.server.service.entitiy.device.profile;
+package org.thingsboard.server.service;
 
-import org.thingsboard.server.common.data.DeviceProfile;
 import org.thingsboard.server.common.data.User;
-import org.thingsboard.server.common.data.exception.ThingsboardException;
-import org.thingsboard.server.service.SimpleTbEntityService;
 
-public interface TbDeviceProfileService extends SimpleTbEntityService<DeviceProfile> {
+public interface SimpleTbEntityService<T> {
 
-    DeviceProfile setDefaultDeviceProfile(DeviceProfile deviceProfile, DeviceProfile previousDefaultDeviceProfile, User user) throws ThingsboardException;
+    default T save(T entity) throws Exception {
+        return save(entity, null);
+    }
+
+    T save(T entity, User user) throws Exception;
+
+    void delete(T entity, User user);
+
 }

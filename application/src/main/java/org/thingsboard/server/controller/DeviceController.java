@@ -59,16 +59,17 @@ import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.page.TimePageLink;
 import org.thingsboard.server.common.data.security.DeviceCredentials;
+import org.thingsboard.server.common.data.sync.ie.importing.csv.BulkImportRequest;
+import org.thingsboard.server.common.data.sync.ie.importing.csv.BulkImportResult;
 import org.thingsboard.server.dao.device.claim.ClaimResponse;
 import org.thingsboard.server.dao.device.claim.ClaimResult;
 import org.thingsboard.server.dao.device.claim.ReclaimResult;
 import org.thingsboard.server.dao.exception.IncorrectParameterException;
 import org.thingsboard.server.dao.model.ModelConstants;
 import org.thingsboard.server.queue.util.TbCoreComponent;
+import org.thingsboard.server.service.TbDeviceService;
 import org.thingsboard.server.service.device.DeviceBulkImportService;
-import org.thingsboard.server.common.data.sync.ie.importing.csv.BulkImportRequest;
-import org.thingsboard.server.common.data.sync.ie.importing.csv.BulkImportResult;
-import org.thingsboard.server.service.entitiy.device.TbDeviceService;
+import org.thingsboard.server.service.entitiy.device.TbClaimDeviceService;
 import org.thingsboard.server.service.security.model.SecurityUser;
 import org.thingsboard.server.service.security.permission.Operation;
 import org.thingsboard.server.service.security.permission.Resource;
@@ -121,6 +122,7 @@ public class DeviceController extends BaseController {
     private final DeviceBulkImportService deviceBulkImportService;
 
     private final TbDeviceService tbDeviceService;
+    private final TbClaimDeviceService tbClaimDeviceService;
 
     @ApiOperation(value = "Get Device (getDeviceById)",
             notes = "Fetch the Device object based on the provided Device Id. " +
@@ -555,7 +557,7 @@ public class DeviceController extends BaseController {
                 device.getId(), device);
         String secretKey = getSecretKey(claimRequest);
 
-        ListenableFuture<ClaimResult> future = tbDeviceService.claimDevice(tenantId, device, customerId, secretKey, user);
+        ListenableFuture<ClaimResult> future = tbClaimDeviceService.claimDevice(tenantId, device, customerId, secretKey, user);
 
         Futures.addCallback(future, new FutureCallback<>() {
             @Override
@@ -600,7 +602,7 @@ public class DeviceController extends BaseController {
         accessControlService.checkPermission(user, Resource.DEVICE, Operation.CLAIM_DEVICES,
                 device.getId(), device);
 
-        ListenableFuture<ReclaimResult> result = tbDeviceService.reclaimDevice(tenantId, device, user);
+        ListenableFuture<ReclaimResult> result = tbClaimDeviceService.reclaimDevice(tenantId, device, user);
         Futures.addCallback(result, new FutureCallback<>() {
             @Override
             public void onSuccess(ReclaimResult reclaimResult) {

@@ -13,18 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.thingsboard.server.service.entitiy;
+package org.thingsboard.server.service.entitiy.device;
 
+import com.google.common.util.concurrent.ListenableFuture;
+import org.thingsboard.server.common.data.Device;
 import org.thingsboard.server.common.data.User;
+import org.thingsboard.server.common.data.id.CustomerId;
+import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.dao.device.claim.ClaimResult;
+import org.thingsboard.server.dao.device.claim.ReclaimResult;
 
-public interface SimpleTbEntityService<T> {
+public interface TbClaimDeviceService {
 
-    default T save(T entity) throws Exception {
-        return save(entity, null);
-    }
+    ListenableFuture<ClaimResult> claimDevice(TenantId tenantId, Device device, CustomerId customerId, String secretKey, User user);
 
-    T save(T entity, User user) throws Exception;
-
-    void delete(T entity, User user);
-
+    ListenableFuture<ReclaimResult> reclaimDevice(TenantId tenantId, Device device, User user);
 }

@@ -23,7 +23,7 @@ import org.thingsboard.server.common.data.exception.ThingsboardException;
 import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.DashboardId;
 import org.thingsboard.server.common.data.id.TenantId;
-import org.thingsboard.server.service.entitiy.SimpleTbEntityService;
+import org.thingsboard.server.service.SimpleTbEntityService;
 
 import java.util.Set;
 
