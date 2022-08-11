@@ -45,7 +45,7 @@ import org.thingsboard.server.common.data.rule.RuleNodeUpdateResult;
 import org.thingsboard.server.dao.relation.RelationService;
 import org.thingsboard.server.dao.rule.RuleChainService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
-import org.thingsboard.server.service.entitiy.AbstractTbEntityService;
+import org.thingsboard.server.service.entity.AbstractTbEntityService;
 import org.thingsboard.server.service.install.InstallScripts;
 import org.thingsboard.server.service.sync.vc.EntitiesVersionControlService;
 

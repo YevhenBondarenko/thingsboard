@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
-import static org.thingsboard.server.service.entitiy.DefaultTbNotificationEntityService.edgeTypeByActionType;
+import static org.thingsboard.server.service.entity.DefaultTbNotificationEntityService.edgeTypeByActionType;
 
 @Slf4j
 public abstract class AbstractNotifyEntityTest extends AbstractWebTest {
