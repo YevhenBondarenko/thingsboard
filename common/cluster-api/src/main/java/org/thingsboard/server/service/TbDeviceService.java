@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.thingsboard.server.service.entity.device;
+package org.thingsboard.server.service;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import org.thingsboard.server.common.data.Customer;
@@ -22,12 +22,9 @@ import org.thingsboard.server.common.data.Tenant;
 import org.thingsboard.server.common.data.User;
 import org.thingsboard.server.common.data.edge.Edge;
 import org.thingsboard.server.common.data.exception.ThingsboardException;
-import org.thingsboard.server.common.data.id.CustomerId;
 import org.thingsboard.server.common.data.id.DeviceId;
 import org.thingsboard.server.common.data.id.TenantId;
 import org.thingsboard.server.common.data.security.DeviceCredentials;
-import org.thingsboard.server.dao.device.claim.ClaimResult;
-import org.thingsboard.server.dao.device.claim.ReclaimResult;
 
 public interface TbDeviceService {
 
@@ -46,10 +43,6 @@ public interface TbDeviceService {
     DeviceCredentials getDeviceCredentialsByDeviceId(Device device, User user) throws ThingsboardException;
 
     DeviceCredentials updateDeviceCredentials(Device device, DeviceCredentials deviceCredentials, User user) throws ThingsboardException;
-
-    ListenableFuture<ClaimResult> claimDevice(TenantId tenantId, Device device, CustomerId customerId, String secretKey, User user);
-
-    ListenableFuture<ReclaimResult> reclaimDevice(TenantId tenantId, Device device, User user);
 
     Device assignDeviceToTenant(Device device, Tenant newTenant, User user);
 

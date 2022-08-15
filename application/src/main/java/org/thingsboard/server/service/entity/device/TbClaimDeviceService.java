@@ -13,14 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.thingsboard.server.service.entity.device.profile;
+package org.thingsboard.server.service.entity.device;
 
-import org.thingsboard.server.common.data.DeviceProfile;
+import com.google.common.util.concurrent.ListenableFuture;
+import org.thingsboard.server.common.data.Device;
 import org.thingsboard.server.common.data.User;
-import org.thingsboard.server.common.data.exception.ThingsboardException;
-import org.thingsboard.server.service.SimpleTbEntityService;
+import org.thingsboard.server.common.data.id.CustomerId;
+import org.thingsboard.server.common.data.id.TenantId;
+import org.thingsboard.server.dao.device.claim.ClaimResult;
+import org.thingsboard.server.dao.device.claim.ReclaimResult;
 
-public interface TbDeviceProfileService extends SimpleTbEntityService<DeviceProfile> {
+public interface TbClaimDeviceService {
 
-    DeviceProfile setDefaultDeviceProfile(DeviceProfile deviceProfile, DeviceProfile previousDefaultDeviceProfile, User user) throws ThingsboardException;
+    ListenableFuture<ClaimResult> claimDevice(TenantId tenantId, Device device, CustomerId customerId, String secretKey, User user);
+
+    ListenableFuture<ReclaimResult> reclaimDevice(TenantId tenantId, Device device, User user);
 }

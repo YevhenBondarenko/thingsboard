@@ -51,7 +51,7 @@ import org.thingsboard.server.dao.exception.DeviceCredentialsValidationException
 import org.thingsboard.server.queue.util.TbCoreComponent;
 import org.thingsboard.server.service.sync.ie.importing.csv.AbstractBulkImportService;
 import org.thingsboard.server.common.data.sync.ie.importing.csv.BulkImportColumnType;
-import org.thingsboard.server.service.entity.device.TbDeviceService;
+import org.thingsboard.server.service.TbDeviceService;
 import org.thingsboard.server.service.security.model.SecurityUser;
 
 import java.util.Collection;

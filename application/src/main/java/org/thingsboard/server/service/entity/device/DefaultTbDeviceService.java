@@ -18,8 +18,9 @@ package org.thingsboard.server.service.entity.device;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.thingsboard.server.common.data.Customer;
 import org.thingsboard.server.common.data.Device;
@@ -41,21 +42,22 @@ import org.thingsboard.server.dao.device.claim.ClaimResponse;
 import org.thingsboard.server.dao.device.claim.ClaimResult;
 import org.thingsboard.server.dao.device.claim.ReclaimResult;
 import org.thingsboard.server.dao.tenant.TenantService;
-import org.thingsboard.server.queue.util.TbCoreComponent;
+import org.thingsboard.server.service.TbDeviceService;
 import org.thingsboard.server.service.entity.AbstractTbEntityService;
 
 import java.util.List;
 
-@AllArgsConstructor
-@TbCoreComponent
+@RequiredArgsConstructor
 @Service
 @Slf4j
-public class DefaultTbDeviceService extends AbstractTbEntityService implements TbDeviceService {
+public class DefaultTbDeviceService extends AbstractTbEntityService implements TbDeviceService, TbClaimDeviceService {
 
     private final DeviceService deviceService;
     private final DeviceCredentialsService deviceCredentialsService;
-    private final ClaimDevicesService claimDevicesService;
     private final TenantService tenantService;
+
+    @Autowired(required = false)
+    private ClaimDevicesService claimDevicesService;
 
     @Override
     public Device save(Device device, Device oldDevice, String accessToken, User user) throws Exception {

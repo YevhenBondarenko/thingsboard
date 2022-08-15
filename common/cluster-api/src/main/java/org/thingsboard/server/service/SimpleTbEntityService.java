@@ -13,11 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.thingsboard.server.service.entity.customer;
+package org.thingsboard.server.service;
 
-import org.thingsboard.server.common.data.Customer;
-import org.thingsboard.server.service.entity.SimpleTbEntityService;
+import org.thingsboard.server.common.data.User;
 
-public interface TbCustomerService extends SimpleTbEntityService<Customer> {
+public interface SimpleTbEntityService<T> {
+
+    default T save(T entity) throws Exception {
+        return save(entity, null);
+    }
+
+    T save(T entity, User user) throws Exception;
+
+    void delete(T entity, User user);
 
 }
