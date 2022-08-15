@@ -134,6 +134,9 @@ public abstract class AbstractTbEntityService {
     }
 
     protected ListenableFuture<UUID> autoCommit(User user, EntityId entityId) throws Exception {
+        if (user == null) {
+            return Futures.immediateFuture(null);
+        }
         if (vcService != null) {
             return vcService.autoCommit(user, entityId);
         } else {

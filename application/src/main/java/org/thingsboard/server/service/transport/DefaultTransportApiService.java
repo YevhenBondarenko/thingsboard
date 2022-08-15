@@ -65,7 +65,6 @@ import org.thingsboard.server.common.msg.EncryptionUtil;
 import org.thingsboard.server.common.msg.TbMsg;
 import org.thingsboard.server.common.msg.TbMsgDataType;
 import org.thingsboard.server.common.msg.TbMsgMetaData;
-import org.thingsboard.server.queue.util.DataDecodingEncodingService;
 import org.thingsboard.server.dao.device.DeviceCredentialsService;
 import org.thingsboard.server.dao.device.DeviceProvisionService;
 import org.thingsboard.server.dao.device.DeviceService;
@@ -95,7 +94,9 @@ import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceLwM2MC
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceTokenRequestMsg;
 import org.thingsboard.server.gen.transport.TransportProtos.ValidateDeviceX509CertRequestMsg;
 import org.thingsboard.server.queue.common.TbProtoQueueMsg;
+import org.thingsboard.server.queue.util.DataDecodingEncodingService;
 import org.thingsboard.server.queue.util.TbCoreComponent;
+import org.thingsboard.server.service.TbDeviceService;
 import org.thingsboard.server.service.apiusage.TbApiUsageStateService;
 import org.thingsboard.server.service.executors.DbCallbackExecutorService;
 import org.thingsboard.server.service.profile.TbDeviceProfileCache;
@@ -128,6 +129,7 @@ public class DefaultTransportApiService implements TransportApiService {
     private final TbTenantProfileCache tenantProfileCache;
     private final TbApiUsageStateService apiUsageStateService;
     private final DeviceService deviceService;
+    private final TbDeviceService tbDeviceService;
     private final RelationService relationService;
     private final DeviceCredentialsService deviceCredentialsService;
     private final DbCallbackExecutorService dbCallbackExecutorService;
@@ -321,8 +323,7 @@ public class DefaultTransportApiService implements TransportApiService {
                                     || !gatewayId.toString().equals(deviceAdditionalInfo.get(DataConstants.LAST_CONNECTED_GATEWAY).asText()))) {
                         ObjectNode newDeviceAdditionalInfo = (ObjectNode) deviceAdditionalInfo;
                         newDeviceAdditionalInfo.put(DataConstants.LAST_CONNECTED_GATEWAY, gatewayId.toString());
-                        Device savedDevice = deviceService.saveDevice(device);
-                        tbClusterService.onDeviceUpdated(savedDevice, device);
+                        device = tbDeviceService.save(device, device, null, null);
                     }
                 }
                 GetOrCreateDeviceFromGatewayResponseMsg.Builder builder = GetOrCreateDeviceFromGatewayResponseMsg.newBuilder()
@@ -338,6 +339,8 @@ public class DefaultTransportApiService implements TransportApiService {
                         .build();
             } catch (JsonProcessingException e) {
                 log.warn("[{}] Failed to lookup device by gateway id and name: [{}]", gatewayId, requestMsg.getDeviceName(), e);
+                throw new RuntimeException(e);
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {
                 deviceCreationLock.unlock();
@@ -626,8 +629,7 @@ public class DefaultTransportApiService implements TransportApiService {
                 device.setTenantId(tenantId);
                 device.setName(deviceName);
                 device.setType("LwM2M");
-                device = deviceService.saveDevice(device);
-                tbClusterService.onDeviceUpdated(device, null);
+                device = tbDeviceService.save(device, null, null, null);
             }
             TransportProtos.LwM2MRegistrationResponseMsg registrationResponseMsg =
                     TransportProtos.LwM2MRegistrationResponseMsg.newBuilder()
@@ -636,6 +638,8 @@ public class DefaultTransportApiService implements TransportApiService {
             return Futures.immediateFuture(TransportApiResponseMsg.newBuilder().setLwM2MResponseMsg(responseMsg).build());
         } catch (JsonProcessingException e) {
             log.warn("[{}][{}] Failed to lookup device by gateway id and name", tenantId, deviceName, e);
+            throw new RuntimeException(e);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             deviceCreationLock.unlock();
