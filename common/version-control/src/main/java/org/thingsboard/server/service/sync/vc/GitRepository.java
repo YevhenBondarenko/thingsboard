@@ -20,14 +20,13 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import lombok.Data;
 import lombok.Getter;
-import org.thingsboard.server.common.data.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.util.security.SecurityUtils;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.GitCommand;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.LogCommand;
-import org.eclipse.jgit.api.LsRemoteCommand;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.TransportCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -57,12 +56,13 @@ import org.eclipse.jgit.transport.sshd.SshdSessionFactoryBuilder;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.thingsboard.server.common.data.StringUtils;
 import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.page.SortOrder;
 import org.thingsboard.server.common.data.sync.vc.BranchInfo;
-import org.thingsboard.server.common.data.sync.vc.RepositorySettings;
 import org.thingsboard.server.common.data.sync.vc.RepositoryAuthMethod;
+import org.thingsboard.server.common.data.sync.vc.RepositorySettings;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -70,6 +70,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -81,6 +83,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class GitRepository {
 
     private final Git git;
@@ -132,16 +135,60 @@ public class GitRepository {
     }
 
     public static void test(RepositorySettings settings, File directory) throws GitAPIException {
-        CredentialsProvider credentialsProvider = null;
-        SshdSessionFactory sshSessionFactory = null;
-        if (RepositoryAuthMethod.USERNAME_PASSWORD.equals(settings.getAuthMethod())) {
-            credentialsProvider = newCredentialsProvider(settings.getUsername(), settings.getPassword());
-        } else if (RepositoryAuthMethod.PRIVATE_KEY.equals(settings.getAuthMethod())) {
-            sshSessionFactory = newSshdSessionFactory(settings.getPrivateKey(), settings.getPrivateKeyPassword(), directory);
+        GitRepository repo;
+        try {
+            repo = clone(settings, directory);
+
+            List<String> branches = repo.git.branchList().setListMode(ListBranchCommand.ListMode.REMOTE).call().stream()
+                    .filter(ref -> !ref.getName().equals(Constants.HEAD))
+                    .map(ref -> org.eclipse.jgit.lib.Repository.shortenRefName(ref.getName()))
+                    .map(name -> org.apache.commons.lang3.StringUtils.removeStart(name, "origin/"))
+                    .collect(Collectors.toList());
+
+            String defaultBranch = settings.getDefaultBranch();
+
+            String startPoint;
+
+            if (StringUtils.isNotEmpty(defaultBranch) && branches.contains(defaultBranch)) {
+                startPoint = defaultBranch;
+            } else if (branches.contains("main")) {
+                startPoint = "main";
+            } else if (branches.contains("master")) {
+                startPoint = "master";
+            } else {
+                startPoint = branches.get(0);
+            }
+
+            String testBranchName = "test/access";
+            repo.git.branchCreate().setName(testBranchName).setStartPoint("origin/" + startPoint).call();
+
+            CredentialsProvider credentialsProvider = null;
+            SshdSessionFactory sshSessionFactory = null;
+            if (RepositoryAuthMethod.USERNAME_PASSWORD.equals(settings.getAuthMethod())) {
+                credentialsProvider = newCredentialsProvider(settings.getUsername(), settings.getPassword());
+            } else if (RepositoryAuthMethod.PRIVATE_KEY.equals(settings.getAuthMethod())) {
+                sshSessionFactory = newSshdSessionFactory(settings.getPrivateKey(), settings.getPrivateKeyPassword(), directory);
+            }
+
+            var createBranch =
+                    repo.git.push().setRefSpecs(new RefSpec(String.format("%s:%s", testBranchName, testBranchName)));
+            configureTransportCommand(createBranch, credentialsProvider, sshSessionFactory);
+            createBranch.call();
+
+            var removeBranch =
+                    repo.git.push().setRefSpecs(new RefSpec().setSource(null).setDestination("refs/heads/" + testBranchName));
+            configureTransportCommand(removeBranch, credentialsProvider, sshSessionFactory);
+            removeBranch.call();
+        } finally {
+            try {
+                Files.walk(directory.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                log.debug("Failed to remove test directory");
+            }
         }
-        LsRemoteCommand lsRemoteCommand = Git.lsRemoteRepository().setRemote(settings.getRepositoryUri());
-        configureTransportCommand(lsRemoteCommand, credentialsProvider, sshSessionFactory);
-        lsRemoteCommand.call();
     }
 
     public void fetch() throws GitAPIException {
