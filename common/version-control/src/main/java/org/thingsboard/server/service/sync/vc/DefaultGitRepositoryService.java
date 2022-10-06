@@ -61,6 +61,9 @@ public class DefaultGitRepositoryService implements GitRepositoryService {
     @Value("${vc.git.repositories-folder:${java.io.tmpdir}/repositories}")
     private String repositoriesFolder;
 
+    @Value("${vc.git.test-folder:${java.io.tmpdir}/test}")
+    private String tmpTestFolder;
+
     private final Map<TenantId, GitRepository> repositories = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -219,7 +222,7 @@ public class DefaultGitRepositoryService implements GitRepositoryService {
 
     @Override
     public void testRepository(TenantId tenantId, RepositorySettings settings) throws Exception {
-        Path repositoryDirectory = Path.of(repositoriesFolder, tenantId.getId().toString());
+        Path repositoryDirectory = Path.of(tmpTestFolder, tenantId.getId().toString());
         GitRepository.test(settings, repositoryDirectory.toFile());
     }
 

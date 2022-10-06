@@ -21,13 +21,14 @@ import com.google.common.collect.Streams;
 import lombok.Data;
 import lombok.Getter;
 import org.thingsboard.server.common.data.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.sshd.common.util.security.SecurityUtils;
 import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.GitCommand;
 import org.eclipse.jgit.api.ListBranchCommand;
 import org.eclipse.jgit.api.LogCommand;
-import org.eclipse.jgit.api.LsRemoteCommand;
+import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.TransportCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -47,6 +48,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.transport.FetchResult;
+import org.eclipse.jgit.transport.PushResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.SshTransport;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
@@ -61,8 +63,8 @@ import org.thingsboard.server.common.data.page.PageData;
 import org.thingsboard.server.common.data.page.PageLink;
 import org.thingsboard.server.common.data.page.SortOrder;
 import org.thingsboard.server.common.data.sync.vc.BranchInfo;
-import org.thingsboard.server.common.data.sync.vc.RepositorySettings;
 import org.thingsboard.server.common.data.sync.vc.RepositoryAuthMethod;
+import org.thingsboard.server.common.data.sync.vc.RepositorySettings;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -70,6 +72,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.ArrayList;
@@ -81,6 +85,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class GitRepository {
 
     private final Git git;
@@ -132,16 +137,60 @@ public class GitRepository {
     }
 
     public static void test(RepositorySettings settings, File directory) throws GitAPIException {
-        CredentialsProvider credentialsProvider = null;
-        SshdSessionFactory sshSessionFactory = null;
-        if (RepositoryAuthMethod.USERNAME_PASSWORD.equals(settings.getAuthMethod())) {
-            credentialsProvider = newCredentialsProvider(settings.getUsername(), settings.getPassword());
-        } else if (RepositoryAuthMethod.PRIVATE_KEY.equals(settings.getAuthMethod())) {
-            sshSessionFactory = newSshdSessionFactory(settings.getPrivateKey(), settings.getPrivateKeyPassword(), directory);
+        GitRepository repo;
+        try {
+            repo = clone(settings, directory);
+
+            repo.git.branchCreate().setName("test/access").setStartPoint("origin/main").call();
+
+//            repo.git.checkout()
+//                    .setOrphan(true)
+//                    .setForced(true)
+//                    .setName("test/access")
+//                    .call();
+
+//            repo.git.checkout()
+//                    .setCreateBranch(true)
+//                    .setName("test/access").call();
+
+            CredentialsProvider credentialsProvider = null;
+            SshdSessionFactory sshSessionFactory = null;
+            if (RepositoryAuthMethod.USERNAME_PASSWORD.equals(settings.getAuthMethod())) {
+                credentialsProvider = newCredentialsProvider(settings.getUsername(), settings.getPassword());
+            } else if (RepositoryAuthMethod.PRIVATE_KEY.equals(settings.getAuthMethod())) {
+                sshSessionFactory = newSshdSessionFactory(settings.getPrivateKey(), settings.getPrivateKeyPassword(), directory);
+            }
+
+            var createBranch = repo.git.push().setRefSpecs(new RefSpec("test/access:test/access"));
+            configureTransportCommand(createBranch, credentialsProvider, sshSessionFactory);
+            createBranch.call();
+
+            var removeBranch = repo.git.push().setRefSpecs(new RefSpec("--delete test/access"));
+            configureTransportCommand(removeBranch, credentialsProvider, sshSessionFactory);
+            removeBranch.call();
+        } finally {
+            try {
+
+
+                Files.walk(directory.toPath())
+                        .sorted(Comparator.reverseOrder())
+                        .map(Path::toFile)
+                        .forEach(File::delete);
+            } catch (IOException e) {
+                log.debug("Failed to remove test directory");
+            }
         }
-        LsRemoteCommand lsRemoteCommand = Git.lsRemoteRepository().setRemote(settings.getRepositoryUri());
-        configureTransportCommand(lsRemoteCommand, credentialsProvider, sshSessionFactory);
-        lsRemoteCommand.call();
+
+//        CredentialsProvider credentialsProvider = null;
+//        SshdSessionFactory sshSessionFactory = null;
+//        if (RepositoryAuthMethod.USERNAME_PASSWORD.equals(settings.getAuthMethod())) {
+//            credentialsProvider = newCredentialsProvider(settings.getUsername(), settings.getPassword());
+//        } else if (RepositoryAuthMethod.PRIVATE_KEY.equals(settings.getAuthMethod())) {
+//            sshSessionFactory = newSshdSessionFactory(settings.getPrivateKey(), settings.getPrivateKeyPassword(), directory);
+//        }
+//        LsRemoteCommand lsRemoteCommand = Git.lsRemoteRepository().setRemote(settings.getRepositoryUri());
+//        configureTransportCommand(lsRemoteCommand, credentialsProvider, sshSessionFactory);
+//        lsRemoteCommand.call();
     }
 
     public void fetch() throws GitAPIException {
@@ -453,7 +502,8 @@ public class GitRepository {
         try {
             keyPairs = SecurityUtils.loadKeyPairIdentities(null,
                     null, new ByteArrayInputStream(privateKeyContent.getBytes()), (session, resourceKey, retryIndex) -> password);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        }
         if (keyPairs == null) {
             throw new IllegalArgumentException("Failed to load ssh private key");
         }
