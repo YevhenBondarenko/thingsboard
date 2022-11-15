@@ -224,7 +224,7 @@ public class CassandraBaseTimeseriesDao extends AbstractCassandraBaseTimeseriesD
 
     @Override
     public ListenableFuture<Void> removePartition(TenantId tenantId, EntityId entityId, DeleteTsKvQuery query) {
-        long minPartition = toPartitionTs(query.getStartTs());
+        long minPartition = toMinPartitionTs(query.getStartTs());
         long maxPartition = toPartitionTs(query.getEndTs());
         if (minPartition == maxPartition) {
             return Futures.immediateFuture(null);
@@ -335,6 +335,12 @@ public class CassandraBaseTimeseriesDao extends AbstractCassandraBaseTimeseriesD
             }
             return new ReadTsKvQueryResult(query.getId(), tsKvEntries, lastTs);
         }, MoreExecutors.directExecutor());
+    }
+
+    private long toMinPartitionTs(long ts) {
+        LocalDateTime time = LocalDateTime.ofInstant(Instant.ofEpochMilli(ts), ZoneOffset.UTC);
+        time = time.minusNanos(1).plus(1, tsFormat.getTruncateUnit());
+        return tsFormat.truncatedTo(time).toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
     private long toPartitionTs(long ts) {
